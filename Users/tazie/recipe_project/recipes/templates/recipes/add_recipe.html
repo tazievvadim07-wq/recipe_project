@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Добавить рецепт</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; color: #333; display: flex; justify-content: center; }
+        .box { background: white; padding: 30px; border-radius: 8px; width: 600px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h2, h3 { color: #d9534f; margin-top: 0; }
+        p { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; color: #555; }
+        input, textarea, select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; margin-bottom: 10px; }
+        .ingredient-row { background: #fdfdfd; padding: 12px; border: 1px solid #eee; border-radius: 6px; margin-bottom: 10px; }
+        button { width: 100%; background: #d9534f; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 15px; }
+        button:hover { background: #c9302c; }
+        .links { margin-top: 15px; text-align: center; font-size: 14px; }
+        .links a { color: #0275d8; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Добавить новый рецепт</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+            <h3>Ингредиенты</h3>
+            <p style="font-size: 13px; color: #666;">Выберите существующий ингредиент из списка **или** впишите новый название в поле ниже, а также укажите количество (например: 200 г).</p>
+            
+            {{ formset.management_form }}
+            {% for f in formset %}
+                <div class="ingredient-row">
+                    {{ f.as_p }}
+                </div>
+            {% endfor %}
+
+            <button type="submit">Опубликовать рецепт</button>
+        </form>
+        <div class="links">
+            <p><a href="{% url 'recipe_list' %}">← На главную</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вкуснотека</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h1 { margin: 0; font-size: 24px; color: #d9534f; }
+        .recipe-card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .recipe-card h3 { margin-top: 0; color: #333; }
+        .btn-primary { background: #d9534f; color: white; padding: 6px 14px; border-radius: 4px; text-decoration: none; font-size: 14px; display: inline-block; }
+        .btn-primary:hover { background: #c9302c; }
+        a { color: #0275d8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Единая шапка сайта -->
+        <div class="header">
+            <h1>Кулинарный справочник</h1>
+            <div>
+                {% if user.is_authenticated %}
+                    <span style="color: #555;">Привет, <strong>{{ user.username }}</strong>!</span> &nbsp;|&nbsp; 
+                    <a href="{% url 'add_recipe' %}">➕ Добавить рецепт</a> &nbsp;|&nbsp; 
+                    <a href="{% url 'favorites_list' %}">⭐ Избранное</a> &nbsp;|&nbsp;
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="background:none; border:none; color:#d9534f; cursor:pointer; font-size: 14px; text-decoration:underline; padding:0;">Выйти</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" style="margin-right: 15px;">Войти</a>
+                    <a href="{% url 'register' %}" class="btn-primary">Зарегистрироваться</a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Список рецептов -->
+        <hr style="border: none; border-top: 1px solid #ddd; margin-bottom: 20px;">
+
+        {% for recipe in recipes %}
+            <div class="recipe-card">
+                <h3>{{ recipe.title }}</h3>
+                <p><strong>Время приготовления:</strong> {{ recipe.cooking_time }} мин.</p>
+                <p><strong>Порций:</strong> {{ recipe.servings }}</p>
+                <p>{{ recipe.description|truncatechars:120 }}</p>
+                <a href="{% url 'recipe_detail' recipe.pk %}">Подробнее...</a>
+            </div>
+        {% empty %}
+            <p>Пока нет ни одного рецепта. Будьте первыми!</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

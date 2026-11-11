@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ recipe.title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; color: #333; display: flex; justify-content: center; }
+        .recipe-box { background: white; padding: 30px; border-radius: 8px; width: 600px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #d9534f; margin-top: 0; }
+        ul { line-height: 1.6; }
+        .back-link { display: inline-block; margin-top: 20px; text-decoration: none; color: #0275d8; }
+        .meta { color: #666; font-size: 14px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="recipe-box">
+        <h1>{{ recipe.title }}</h1>
+        <div class="meta">
+            <p><strong>Автор:</strong> {{ recipe.author.username }}</p>
+            <p><strong>Время приготовления:</strong> {{ recipe.cooking_time }} мин.</p>
+            <p><strong>Порций:</strong> {{ recipe.servings }}</p>
+        </div>
+
+        <!-- Кнопка избранного -->
+        {% if user.is_authenticated %}
+            <form action="{% url 'toggle_favorite' recipe.id %}" method="post" style="margin: 15px 0;">
+                {% csrf_token %}
+                {% if is_favorite %}
+                    <button type="submit" style="background: #f0ad4e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">★ Удалить из избранного</button>
+                {% else %}
+                    <button type="submit" style="background: #0275d8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">☆ Сохранить в избранное</button>
+                {% endif %}
+            </form>
+        {% endif %}
+        
+        <hr>
+        
+        <h3>Ингредиенты:</h3>
+        <ul>
+            {% for item in recipe.recipe_ingredients.all %}
+                <li>{{ item.ingredient.name }} — {{ item.amount }}</li>
+            {% empty %}
+                <li>Ингредиенты пока не добавлены.</li>
+            {% endfor %}
+        </ul>
+
+        <h3>Шаги приготовления:</h3>
+        <p style="white-space: pre-line; background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 4px;">{{ recipe.description }}</p>
+
+        <a class="back-link" href="{% url 'recipe_list' %}">← Назад к списку рецептов</a>
+    </div>
+</body>
+</html>
