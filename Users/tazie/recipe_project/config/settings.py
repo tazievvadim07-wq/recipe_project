@@ -130,3 +130,8 @@ MAILERS = {
 ACCOUNT_EMAIL_REQUIRED = False
 
 AUTH_PASSWORD_VALIDATORS = []
+
+import os
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

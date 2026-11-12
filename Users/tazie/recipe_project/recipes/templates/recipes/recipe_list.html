@@ -37,28 +37,47 @@
 <h2 style="font-size: 20px; margin-bottom: 20px;">Рецепты</h2>
 
 {% for item in filtered_recipes %}
-    <div class="card">
-        <h3 style="margin-top: 0; font-size: 18px;"><a href="{% url 'recipe_detail' item.recipe.pk %}">{{ item.recipe.title }}</a></h3>
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
-            ⏱️ Время: {{ item.recipe.cooking_time }} мин. &nbsp;|&nbsp; 🍽️ Порций: {{ item.recipe.servings }}
-        </p>
+    <div class="card" style="display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; flex-wrap: nowrap;">
         
-        <div style="margin: 10px 0; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid #f1f3f5;">
-            <strong style="font-size: 13px; color: #495057;">Ингредиенты:</strong>
-            <ul style="margin: 5px 0 0 20px; padding: 0; font-size: 14px;">
-                {% for ri in item.recipe_ingredients %}
-                    <li style="margin-bottom: 3px; {% if ri.ingredient.id in item.missing_ids %}color: #adb5bd; font-style: italic;{% endif %}">
-                        {{ ri.ingredient.name }} — {{ ri.amount }}
-                        {% if ri.ingredient.id in item.missing_ids %}
-                            <span style="font-size: 12px; color: #e63946; font-style: normal;">(нужно докупить)</span>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
+        <!-- Левая колонка: Вся информация о рецепте -->
+        <div style="flex-grow: 1; min-width: 0;">
+            <h3 style="margin-top: 0; font-size: 18px;">
+                <a href="{% url 'recipe_detail' item.recipe.pk %}" style="color: var(--primary); text-decoration: none;">{{ item.recipe.title }}</a>
+            </h3>
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+                👤 Автор: {{ item.recipe.author.username }} &nbsp;|&nbsp; ⏱️ Время: {{ item.recipe.cooking_time }} мин. &nbsp;|&nbsp; 🍽️ Порций: {{ item.recipe.servings }}
+            </p>
+            
+            <div style="margin: 10px 0; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid #f1f3f5;">
+                <strong style="font-size: 13px; color: #495057;">Ингредиенты:</strong>
+                <ul style="margin: 5px 0 0 20px; padding: 0; font-size: 14px;">
+                    {% for ri in item.recipe_ingredients %}
+                        <li style="margin-bottom: 3px; {% if ri.ingredient.id in item.missing_ids %}color: #adb5bd; font-style: italic;{% endif %}">
+                            {{ ri.ingredient.name }} — {{ ri.quantity }} {{ ri.unit }}
+                            {% if ri.ingredient.id in item.missing_ids %}
+                                <span style="font-size: 12px; color: #e63946; font-style: normal;">(нужно докупить)</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <p style="color: #495057; font-size: 14px; margin-bottom: 10px;">{{ item.recipe.description|truncatechars:120 }}</p>
+            <a href="{% url 'recipe_detail' item.recipe.pk %}" style="font-weight: 600; font-size: 14px;">Читать полностью →</a>
         </div>
 
-        <p style="color: #495057; font-size: 14px;">{{ item.recipe.description|truncatechars:120 }}</p>
-        <a href="{% url 'recipe_detail' item.recipe.pk %}" style="font-weight: 600; font-size: 14px;">Читать полностью →</a>
+        <!-- Правая колонка: Фотография (фиксированная ширина) -->
+        <div style="flex-shrink: 0;">
+            {% if item.recipe.image %}
+                <img src="{{ item.recipe.image.url }}" alt="{{ item.recipe.title }}" 
+                     style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color);">
+            {% else %}
+                <div style="width: 140px; height: 140px; background: #f1f3f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #adb5bd; font-size: 40px; border: 1px solid var(--border-color);">
+                    🍲
+                </div>
+            {% endif %}
+        </div>
+
     </div>
 {% empty %}
     <div class="card" style="text-align: center; color: var(--text-muted);">
