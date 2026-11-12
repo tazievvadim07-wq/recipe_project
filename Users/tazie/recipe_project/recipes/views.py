@@ -98,41 +98,42 @@ def add_recipe_view(request):
             recipe.author = request.user
             recipe.save()
             
-            # Перебираем формы в формасете
             for form_item in formset:
                 if not form_item.cleaned_data or form_item.cleaned_data.get('DELETE', False):
                     continue
                 
-                ingredient = form_item.cleaned_data.get('ingredient')
-                new_name = form_item.cleaned_data.get('new_ingredient_name')
-                
-                # Если не выбран существующий ингредиент и не введено новое название — пропускаем строку
-                if not ingredient and not new_name:
+                ing_name = form_item.cleaned_data.get('ingredient_name')
+                if not ing_name:
                     continue
                 
                 instance = form_item.save(commit=False)
                 instance.recipe = recipe
                 
-                # Если введено название нового ингредиента вручную
-                if new_name:
-                    ingredient_obj, created = Ingredient.objects.get_or_create(
-                        name=new_name.strip().capitalize()
-                    )
-                    instance.ingredient = ingredient_obj
-                
-                if instance.ingredient:
-                    instance.save()
+                # Ищем или создаем ингредиент в базе по введенному тексту
+                ingredient_obj, created = Ingredient.objects.get_or_create(
+                    name=ing_name.strip().capitalize()
+                )
+                instance.ingredient = ingredient_obj
+                instance.save()
                     
             return redirect('recipe_detail', pk=recipe.pk)
     else:
         form = RecipeForm()
         formset = RecipeIngredientFormSet()
         
+    all_ingredients = Ingredient.objects.all()
+    
     return render(request, 'recipes/add_recipe.html', {
         'form': form,
-        'formset': formset
+        'formset': formset,
+        'all_ingredients': all_ingredients
     })
     
+    return render(request, 'recipes/add_recipe.html', {
+        'form': form,
+        'formset': formset,
+        'all_ingredients': all_ingredients
+    })   
     
 # Добавить/Удалить из избранного
 @login_required(login_url='login')

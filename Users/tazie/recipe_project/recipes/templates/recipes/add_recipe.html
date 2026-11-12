@@ -28,31 +28,30 @@
             
             <h3 style="font-size: 18px; color: var(--text-main); margin-bottom: 8px;">Ингредиенты</h3>
             <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
-                Выберите существующий ингредиент из выпадающего списка <b>или</b> впишите новое название. Укажите число (например, <i>200</i>) и единицу измерения (например, <i>г</i>).
+                Начните вводить название ингредиента — выберите из подсказок или введите новое. Укажите число (например, <i>200</i>) и единицу измерения (например, <i>г</i>).
             </p>
             
             <!-- Контейнер для всех строк ингредиентов -->
             <div id="ingredients-container">
                 {{ formset.management_form }}
                 
+                <!-- Глобальный список подсказок для автодополнения -->
+                <datalist id="ingredients-datalist">
+                    {% for ing in all_ingredients %}
+                        <option value="{{ ing.name }}">
+                    {% endfor %}
+                </datalist>
+                
                 {% for f in formset %}
                     <div class="ingredient-row" style="background: #f8f9fa; padding: 18px; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 15px; position: relative;">
                         {{ f.non_field_errors }}
                         
-                        <!-- Выбор существующего ингредиента -->
+                        <!-- Умное поле ввода ингредиента с автодополнением -->
                         <div style="margin-bottom: 12px;">
                             <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: var(--text-main);">
-                                {{ f.ingredient.label }}
+                                {{ f.ingredient_name.label }}
                             </label>
-                            {{ f.ingredient }}
-                        </div>
-                        
-                        <!-- Ввод нового ингредиента -->
-                        <div style="margin-bottom: 12px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 13px; color: var(--text-main);">
-                                {{ f.new_ingredient_name.label }}
-                            </label>
-                            {{ f.new_ingredient_name }}
+                            {{ f.ingredient_name }}
                         </div>
 
                         <!-- Количество и Единица измерения в ряд -->
@@ -71,7 +70,7 @@
                             </div>
                         </div>
                         
-                        <!-- Красивая кнопка удаления (скрывает стандартный чекбокс Django DELETE) -->
+                        <!-- Кнопка удаления -->
                         {% if formset.can_delete %}
                             <div style="display: none;">
                                 {{ f.DELETE }}
@@ -98,9 +97,8 @@
     </div>
 </div>
 
-<!-- Скрипт для динамического добавления строк и красивого удаления -->
+<!-- Скрипт для динамического добавления строк и удаления -->
 <script>
-    // Добавление новой строки
     document.getElementById('add-ingredient-btn').addEventListener('click', function() {
         const container = document.getElementById('ingredients-container');
         const totalFormsInput = document.querySelector('input[name$="-TOTAL_FORMS"]');
@@ -123,14 +121,12 @@
             }
         });
 
-        // Навешиваем обработчик удаления на новую кнопку
         attachDeleteHandler(newRow.querySelector('.btn-delete-row'));
 
         container.appendChild(newRow);
         totalFormsInput.value = formCount + 1;
     });
 
-    // Функция обработки удаления строки
     function attachDeleteHandler(btn) {
         if (!btn) return;
         btn.addEventListener('click', function() {
@@ -138,15 +134,14 @@
             const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
             
             if (deleteCheckbox) {
-                deleteCheckbox.checked = true; // Отмечаем скрытый чекбокс Django
-                row.style.display = 'none';    // Скрываем строку на экране
+                deleteCheckbox.checked = true;
+                row.style.display = 'none';
             } else {
                 row.remove();
             }
         });
     }
 
-    // Инициализация удаления для существующих строк при загрузке
     document.querySelectorAll('.btn-delete-row').forEach(btn => {
         attachDeleteHandler(btn);
     });
