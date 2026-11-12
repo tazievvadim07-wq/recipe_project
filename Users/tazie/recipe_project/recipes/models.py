@@ -25,12 +25,13 @@ class Recipe(models.Model):
 
 # 3. Связь рецепта и ингредиента с указанием количества
 class RecipeIngredient(models.Model):
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='recipe_ingredients')
-    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE, verbose_name="Ингредиент")
-    amount = models.CharField(max_length=100, verbose_name="Количество (например: 200 г, 1 шт)")
+    recipe = models.ForeignKey(Recipe, related_name='recipe_ingredients', on_delete=models.CASCADE)
+    ingredient = models.ForeignKey(Ingredient, on_delete=models.CASCADE)
+    quantity = models.FloatField(default=1.0) # Числовое количество (например: 200)
+    unit = models.CharField(max_length=30, blank=True, default='') # Единица измерения (например: г, шт, мл)
 
     def __str__(self):
-        return f"{self.ingredient.name} — {self.amount} для {self.recipe.title}"
+        return f"{self.ingredient.name} — {self.quantity} {self.unit}"
 
 # 4. Избранные рецепты (Сохраненные пользователем)
 class Favorite(models.Model):

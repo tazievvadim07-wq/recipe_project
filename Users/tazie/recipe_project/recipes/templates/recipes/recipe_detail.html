@@ -1,53 +1,79 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ recipe.title }}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; color: #333; display: flex; justify-content: center; }
-        .recipe-box { background: white; padding: 30px; border-radius: 8px; width: 600px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #d9534f; margin-top: 0; }
-        ul { line-height: 1.6; }
-        .back-link { display: inline-block; margin-top: 20px; text-decoration: none; color: #0275d8; }
-        .meta { color: #666; font-size: 14px; margin-bottom: 15px; }
-    </style>
-</head>
-<body>
-    <div class="recipe-box">
-        <h1>{{ recipe.title }}</h1>
-        <div class="meta">
-            <p><strong>Автор:</strong> {{ recipe.author.username }}</p>
-            <p><strong>Время приготовления:</strong> {{ recipe.cooking_time }} мин.</p>
-            <p><strong>Порций:</strong> {{ recipe.servings }}</p>
+{% extends 'recipes/base.html' %}
+{% block title %}{{ recipe.title }}{% endblock %}
+{% block content %}
+<div style="max-width: 700px; margin: 0 auto;">
+    <div class="card">
+        <h1 style="color: var(--primary); margin-top: 0; font-size: 26px;">{{ recipe.title }}</h1>
+        
+        <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px; display: flex; gap: 20px; flex-wrap: wrap;">
+            <span>👤 Автор: <strong>{{ recipe.author.username }}</strong></span>
+            <span>⏱️ Время: {{ recipe.cooking_time }} мин.</span>
+        </div>
+
+        <!-- Интерактивный выбор порций -->
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-color);">
+            <label for="servings-input" style="font-weight: 600; font-size: 15px; margin: 0;">
+                🍽️ Количество порций:
+            </label>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="number" id="servings-input" value="{{ recipe.servings }}" min="1" max="50" 
+                       data-base-servings="{{ recipe.servings }}"
+                       style="width: 80px; text-align: center; font-size: 16px; font-weight: bold; padding: 6px; border: 1px solid #ced4da; border-radius: 6px;">
+            </div>
         </div>
 
         <!-- Кнопка избранного -->
         {% if user.is_authenticated %}
-            <form action="{% url 'toggle_favorite' recipe.id %}" method="post" style="margin: 15px 0;">
+            <form action="{% url 'toggle_favorite' recipe.id %}" method="post" style="margin-bottom: 25px;">
                 {% csrf_token %}
                 {% if is_favorite %}
-                    <button type="submit" style="background: #f0ad4e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">★ Удалить из избранного</button>
+                    <button type="submit" class="btn" style="background: #f4a261;">★ Удалить из избранного</button>
                 {% else %}
-                    <button type="submit" style="background: #0275d8; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">☆ Сохранить в избранное</button>
+                    <button type="submit" class="btn">☆ В избранное</button>
                 {% endif %}
             </form>
         {% endif %}
         
-        <hr>
-        
-        <h3>Ингредиенты:</h3>
-        <ul>
+        <h3 style="font-size: 18px; color: var(--text-main); border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">Ингредиенты:</h3>
+        <ul style="line-height: 1.8; font-size: 15px; padding-left: 20px;">
             {% for item in recipe.recipe_ingredients.all %}
-                <li>{{ item.ingredient.name }} — {{ item.amount }}</li>
+                <li>
+                    <strong>{{ item.ingredient.name }}</strong> — 
+                    <span class="ingredient-amount" data-base-amount="{{ item.quantity }}">{{ item.quantity }}</span> 
+                    <span class="ingredient-unit">{{ item.unit }}</span>
+                </li>
             {% empty %}
-                <li>Ингредиенты пока не добавлены.</li>
+                <li style="color: var(--text-muted);">Ингредиенты пока не добавлены.</li>
             {% endfor %}
         </ul>
 
-        <h3>Шаги приготовления:</h3>
-        <p style="white-space: pre-line; background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 4px;">{{ recipe.description }}</p>
+        <h3 style="font-size: 18px; color: var(--text-main); margin-top: 30px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px;">Шаги приготовления:</h3>
+        <div style="background: #fdfdfd; padding: 20px; border: 1px solid var(--border-color); border-radius: 8px; white-space: pre-line; font-size: 15px; line-height: 1.7;">
+            {{ recipe.description }}
+        </div>
 
-        <a class="back-link" href="{% url 'recipe_list' %}">← Назад к списку рецептов</a>
+        <div style="margin-top: 25px;">
+            <a href="{% url 'recipe_list' %}" style="font-weight: 600;">← На главную к списку рецептов</a>
+        </div>
     </div>
-</body>
-</html>
+</div>
+
+<!-- Скрипт для динамического пересчета порций -->
+<script>
+    document.getElementById('servings-input').addEventListener('input', function() {
+        let desiredServings = parseFloat(this.value);
+        let baseServings = parseFloat(this.getAttribute('data-base-servings'));
+
+        if (!desiredServings || desiredServings <= 0) return;
+
+        let multiplier = desiredServings / baseServings;
+
+        document.querySelectorAll('.ingredient-amount').forEach(el => {
+            let baseAmount = parseFloat(el.getAttribute('data-base-amount'));
+            let newAmount = baseAmount * multiplier;
+
+            el.textContent = Number.isInteger(newAmount) ? newAmount : newAmount.toFixed(1);
+        });
+    });
+</script>
+{% endblock %}

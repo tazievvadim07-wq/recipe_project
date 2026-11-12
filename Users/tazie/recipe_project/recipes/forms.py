@@ -54,7 +54,7 @@ class RecipeForm(forms.ModelForm):
             'image': 'Фото блюда',
         }
 
-# Форма для связи ингредиента и количества
+# Форма для связи ингредиента, количества и единицы измерения
 class RecipeIngredientForm(forms.ModelForm):
     new_ingredient_name = forms.CharField(
         required=False,
@@ -64,22 +64,45 @@ class RecipeIngredientForm(forms.ModelForm):
 
     class Meta:
         model = RecipeIngredient
-        fields = ['ingredient', 'new_ingredient_name', 'amount']
+        fields = ['ingredient', 'new_ingredient_name', 'quantity', 'unit']
         widgets = {
             'ingredient': forms.Select(attrs={'class': 'form-control'}),
-            'amount': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: 200 г'})
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': 'any', 'placeholder': 'Например: 200'}),
+            'unit': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Например: г, шт, ст. л.'})
         }
         labels = {
             'ingredient': 'Выберите существующий ингредиент',
-            'amount': 'Количество / дозировка'
+            'quantity': 'Количество (число)',
+            'unit': 'Единица измерения (г, мл, шт)'
         }
 
-# Фабрика формасетов (обязательно должна быть здесь!)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['ingredient'].required = False  # <--- Делаем выбор из списка необязательным
+        self.fields['ingredient'].empty_label = "— Не выбрано —"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        ingredient = cleaned_data.get('ingredient')
+        new_name = cleaned_data.get('new_ingredient_name')
+
+        # Если не выбран старый и не введен новый — это пустая строка, пропускаем
+        if not ingredient and not new_name:
+            return cleaned_data
+
+        # Если что-то из двух заполнено, но не указано количество — ругаемся
+        quantity = cleaned_data.get('quantity')
+        if not quantity:
+            self.add_error('quantity', 'Укажите количество для ингредиента.')
+
+        return cleaned_data
+
+# Фабрика формасетов
 RecipeIngredientFormSet = inlineformset_factory(
     Recipe,
     RecipeIngredient,
     form=RecipeIngredientForm,
-    fields=['ingredient', 'new_ingredient_name', 'amount'],
-    extra=3,
+    fields=['ingredient', 'new_ingredient_name', 'quantity', 'unit'],
+    extra=1,
     can_delete=True
 )

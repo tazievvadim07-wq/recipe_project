@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Вкуснотека{% endblock %}</title>
+    <!-- Подключаем наш единый файл стилей -->
+    <link rel="stylesheet" href="{% static 'recipes/style.css' %}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="wrapper">
+        <header class="header">
+            <h1><a href="{% url 'recipe_list' %}"> Вкуснотека</a></h1>
+            <div class="user-nav">
+                {% if user.is_authenticated %}
+                    <span>Привет, <strong>{{ user.username }}</strong>!</span>
+                    <a href="{% url 'add_recipe' %}">➕ Добавить</a>
+                    <a href="{% url 'favorites_list' %}">⭐ Избранное</a>
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size: 14px; font-weight:600; padding:0;">Выйти</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}">Войти</a>
+                    <a href="{% url 'register' %}" class="btn">Регистрация</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

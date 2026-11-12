@@ -1,56 +1,68 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Вкуснотека</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        h1 { margin: 0; font-size: 24px; color: #d9534f; }
-        .recipe-card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .recipe-card h3 { margin-top: 0; color: #333; }
-        .btn-primary { background: #d9534f; color: white; padding: 6px 14px; border-radius: 4px; text-decoration: none; font-size: 14px; display: inline-block; }
-        .btn-primary:hover { background: #c9302c; }
-        a { color: #0275d8; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <!-- Единая шапка сайта -->
-        <div class="header">
-            <h1>Кулинарный справочник</h1>
+{% extends 'recipes/base.html' %}
+
+{% block content %}
+<!-- Блок умного поиска по ингредиентам -->
+<div class="card">
+    <h3 style="margin-top:0; font-size:18px; color:#2b2d42;">🔍 Что у вас есть в холодильнике?</h3>
+    <form method="get" action="">
+        <p style="font-size: 14px; color: var(--text-muted);">Отметьте продукты, которые имеются в наличии:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 160px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: #fafbfc; margin-bottom: 15px;">
+            {% for ing in all_ingredients %}
+                <label style="font-size: 13px; cursor: pointer; background: #fff; padding: 5px 10px; border: 1px solid #dee2e6; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px; font-weight: normal;">
+                    <input type="checkbox" name="ingredients" value="{{ ing.id }}" {% if ing.id in selected_ids %}checked{% endif %}>
+                    {{ ing.name }}
+                </label>
+            {% empty %}
+                <p style="color: var(--text-muted); font-size: 13px; margin: 5px;">В базе пока нет ингредиентов.</p>
+            {% endfor %}
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <label style="font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                <input type="checkbox" name="allow_missing" {% if allow_missing %}checked{% endif %}>
+                Предлагать рецепты с ингредиентами, которые надо докупить
+            </label>
+            
             <div>
-                {% if user.is_authenticated %}
-                    <span style="color: #555;">Привет, <strong>{{ user.username }}</strong>!</span> &nbsp;|&nbsp; 
-                    <a href="{% url 'add_recipe' %}">➕ Добавить рецепт</a> &nbsp;|&nbsp; 
-                    <a href="{% url 'favorites_list' %}">⭐ Избранное</a> &nbsp;|&nbsp;
-                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" style="background:none; border:none; color:#d9534f; cursor:pointer; font-size: 14px; text-decoration:underline; padding:0;">Выйти</button>
-                    </form>
-                {% else %}
-                    <a href="{% url 'login' %}" style="margin-right: 15px;">Войти</a>
-                    <a href="{% url 'register' %}" class="btn-primary">Зарегистрироваться</a>
+                <button type="submit" class="btn">Найти блюда</button>
+                {% if selected_ids %}
+                    <a href="{% url 'recipe_list' %}" style="margin-left: 10px; font-size: 14px; color: var(--primary);">Сбросить</a>
                 {% endif %}
             </div>
         </div>
+    </form>
+</div>
 
-        <!-- Список рецептов -->
-        <hr style="border: none; border-top: 1px solid #ddd; margin-bottom: 20px;">
+<!-- Список рецептов -->
+<h2 style="font-size: 20px; margin-bottom: 20px;">Рецепты</h2>
 
-        {% for recipe in recipes %}
-            <div class="recipe-card">
-                <h3>{{ recipe.title }}</h3>
-                <p><strong>Время приготовления:</strong> {{ recipe.cooking_time }} мин.</p>
-                <p><strong>Порций:</strong> {{ recipe.servings }}</p>
-                <p>{{ recipe.description|truncatechars:120 }}</p>
-                <a href="{% url 'recipe_detail' recipe.pk %}">Подробнее...</a>
-            </div>
-        {% empty %}
-            <p>Пока нет ни одного рецепта. Будьте первыми!</p>
-        {% endfor %}
+{% for item in filtered_recipes %}
+    <div class="card">
+        <h3 style="margin-top: 0; font-size: 18px;"><a href="{% url 'recipe_detail' item.recipe.pk %}">{{ item.recipe.title }}</a></h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+            ⏱️ Время: {{ item.recipe.cooking_time }} мин. &nbsp;|&nbsp; 🍽️ Порций: {{ item.recipe.servings }}
+        </p>
+        
+        <div style="margin: 10px 0; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid #f1f3f5;">
+            <strong style="font-size: 13px; color: #495057;">Ингредиенты:</strong>
+            <ul style="margin: 5px 0 0 20px; padding: 0; font-size: 14px;">
+                {% for ri in item.recipe_ingredients %}
+                    <li style="margin-bottom: 3px; {% if ri.ingredient.id in item.missing_ids %}color: #adb5bd; font-style: italic;{% endif %}">
+                        {{ ri.ingredient.name }} — {{ ri.amount }}
+                        {% if ri.ingredient.id in item.missing_ids %}
+                            <span style="font-size: 12px; color: #e63946; font-style: normal;">(нужно докупить)</span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <p style="color: #495057; font-size: 14px;">{{ item.recipe.description|truncatechars:120 }}</p>
+        <a href="{% url 'recipe_detail' item.recipe.pk %}" style="font-weight: 600; font-size: 14px;">Читать полностью →</a>
     </div>
-</body>
-</html>
+{% empty %}
+    <div class="card" style="text-align: center; color: var(--text-muted);">
+        <p>По вашему запросу ничего не найдено. Попробуйте выбрать другие ингредиенты или разрешите докупку!</p>
+    </div>
+{% endfor %}
+{% endblock %}

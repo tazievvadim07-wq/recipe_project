@@ -3,11 +3,55 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from .forms import RegisterForm, LoginForm, RecipeForm, RecipeIngredientFormSet
-from .models import Recipe, Favorite, RecipeIngredient
+from .models import Recipe, Ingredient, Favorite, RecipeIngredient
 
 def recipe_list(request):
-    recipes = Recipe.objects.all()
-    return render(request, 'recipes/recipe_list.html', {'recipes': recipes})
+    all_ingredients = Ingredient.objects.all().order_by('name')
+    
+    # Получаем выбранные ID ингредиентов из GET-запроса
+    selected_ids = request.GET.getlist('ingredients')
+    selected_ids = [int(i) for i in selected_ids if i.isdigit()]
+    
+    # Читаем состояние галочки "докупать"
+    allow_missing = request.GET.get('allow_missing') == 'on'
+    
+    recipes_qs = Recipe.objects.prefetch_related('recipe_ingredients__ingredient').all()
+    filtered_recipes = []
+    
+    for recipe in recipes_qs:
+        recipe_ingredients = recipe.recipe_ingredients.all()
+        recipe_ing_ids = {ri.ingredient.id for ri in recipe_ingredients}
+        selected_set = set(selected_ids)
+        
+        if not selected_ids:
+            # Если ничего не выбрано, показываем все рецепты
+            filtered_recipes.append({
+                'recipe': recipe,
+                'recipe_ingredients': recipe_ingredients,
+                'missing_ids': set()
+            })
+        else:
+            # Ингредиенты рецепта, которых у пользователя нет
+            missing_ids = recipe_ing_ids - selected_set
+            # Проверяем, есть ли вообще пересечение с тем, что выбрал пользователь
+            has_common = not recipe_ing_ids.isdisjoint(selected_set)
+            
+            if has_common:
+                if not allow_missing and len(missing_ids) > 0:
+                    # Если галочка выключена, а в рецепте есть недостающие — пропускаем
+                    continue
+                filtered_recipes.append({
+                    'recipe': recipe,
+                    'recipe_ingredients': recipe_ingredients,
+                    'missing_ids': missing_ids
+                })
+                
+    return render(request, 'recipes/recipe_list.html', {
+        'filtered_recipes': filtered_recipes,
+        'all_ingredients': all_ingredients,
+        'selected_ids': selected_ids,
+        'allow_missing': allow_missing,
+    })
 
 def recipe_detail(request, pk):
     recipe = get_object_or_404(Recipe, pk=pk)
@@ -54,24 +98,31 @@ def add_recipe_view(request):
             recipe.author = request.user
             recipe.save()
             
-            # Сохраняем ингредиенты и обрабатываем новые
-            instances = formset.save(commit=False)
-            for instance in instances:
+            # Перебираем формы в формасете
+            for form_item in formset:
+                if not form_item.cleaned_data or form_item.cleaned_data.get('DELETE', False):
+                    continue
+                
+                ingredient = form_item.cleaned_data.get('ingredient')
+                new_name = form_item.cleaned_data.get('new_ingredient_name')
+                
+                # Если не выбран существующий ингредиент и не введено новое название — пропускаем строку
+                if not ingredient and not new_name:
+                    continue
+                
+                instance = form_item.save(commit=False)
                 instance.recipe = recipe
                 
-                # Если пользователь ввел название нового ингредиента вручную
-                new_name = formset.cleaned_data[formset.forms.index(instance.form)].get('new_ingredient_name')
+                # Если введено название нового ингредиента вручную
                 if new_name:
-                    # Создаем ингредиент в базе или берем существующий с таким же именем
-                    ingredient_obj, created = Ingredient.objects.get_or_create(name=new_name.strip().capitalize())
+                    ingredient_obj, created = Ingredient.objects.get_or_create(
+                        name=new_name.strip().capitalize()
+                    )
                     instance.ingredient = ingredient_obj
                 
-                if instance.ingredient: # Сохраняем связь только если ингредиент выбран/создан
+                if instance.ingredient:
                     instance.save()
                     
-            for obj in formset.deleted_objects:
-                obj.delete()
-                
             return redirect('recipe_detail', pk=recipe.pk)
     else:
         form = RecipeForm()
@@ -81,7 +132,8 @@ def add_recipe_view(request):
         'form': form,
         'formset': formset
     })
-
+    
+    
 # Добавить/Удалить из избранного
 @login_required(login_url='login')
 def toggle_favorite(request, pk):
